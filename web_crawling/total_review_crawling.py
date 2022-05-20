@@ -20,6 +20,7 @@ def go_back_page():
 
 # 크롤링 함수
 def yogiyo_crawling(location):
+    total_response = 0
     total = pd.DataFrame()
     try:
         # url입력
@@ -126,6 +127,7 @@ def yogiyo_crawling(location):
                 go_back_page()
                 time.sleep(3)
                 continue
+            total_response += owner_len
 
             # 더보기버튼 클릭
             start_time = time.time()
@@ -198,6 +200,7 @@ def yogiyo_crawling(location):
 
     # total.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
     print('End of [ {} ] Crawling!'.format(location))
+    print('총 사장답글 수:', total_response)
     return total
 
 # 메인 크롤링 함수
