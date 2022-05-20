@@ -9,7 +9,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 
-total_restaurant = set()
         
 # 페이지 뒤로 가기 (한 음식점 리뷰를 모두 모았으면 다시 음식점 리스트 페이지로 돌아감)
 def go_back_page():
@@ -20,7 +19,7 @@ def go_back_page():
 
 # 크롤링 함수
 def yogiyo_crawling(location):
-    total_response = 0
+    global total_response, total_restaurant
     total = pd.DataFrame()
     try:
         # url입력
@@ -200,7 +199,6 @@ def yogiyo_crawling(location):
 
     # total.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
     print('End of [ {} ] Crawling!'.format(location))
-    print('총 사장답글 수:', total_response)
     return total
 
 # 메인 크롤링 함수
@@ -219,6 +217,8 @@ def start_yogiyo_crawling(location_list):
     df.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
 
 # Chrome webdriver - 요기요 메인 페이지 실행
+total_restaurant = set()
+total_response = 0
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox')
@@ -229,6 +229,7 @@ loc_list=[
 ]
 
 start_yogiyo_crawling(loc_list)
+print("데이터 총량: ", total_response)
 
 # Chrome webdriver 종료
 driver.close() 
