@@ -9,6 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
 
+total_restaurant = set()
         
 # 페이지 뒤로 가기 (한 음식점 리뷰를 모두 모았으면 다시 음식점 리스트 페이지로 돌아감)
 def go_back_page():
@@ -80,7 +81,7 @@ def yogiyo_crawling(location):
             pre_height = cur_height
         time.sleep(3)
         print('모든 음식점 리스트 불러오기 완료!')
-        
+
         # 음식점 받아오기
         restaurant_list=[]
         html = driver.page_source
@@ -92,6 +93,13 @@ def yogiyo_crawling(location):
         print("마지막 가게:", restaurant_list[-1])
 
         for idx, restaurant_name in enumerate(restaurant_list):
+            
+            if restaurant_name in total_restaurant:
+                print("이미 있는 가게입니다!")
+                continue
+            else:
+                total_restaurant.add(restaurant_name)
+
             # try:
             print('********** '+restaurant_name+' ( '+str(restaurant_list.index(restaurant_name)+1)
                   +'/'+str(len(restaurant_list))+' 번째) **********')
