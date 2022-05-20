@@ -181,8 +181,8 @@ def yogiyo_crawling(location):
                 deliverys.append(delivery[0].string if delivery else '별점X')  # 별점-배달
                 menus.append(menu[0].string if menu else '메뉴X')  # 주문 메뉴
                 customer_reviews.append(customer_review[0].string)  # 고객 리뷰
-                manager_responses.append(manager_response[0].string)  # 사장님 답글
-            
+                manager_responses.append(manager_response[0].string.strip())  # 사장님 답글
+
             reviews = pd.DataFrame({'업체명':restaurant_name, '맛':tastes,'양':quantitys,
                             '배달':deliverys,'주문메뉴':menus, '고객리뷰':customer_reviews, '사장답글':manager_responses})
             
@@ -195,21 +195,25 @@ def yogiyo_crawling(location):
         print('음식점 리스트 페이지 에러')
         print(e)
         pass
-    
-    total.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
+
+    # total.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
     print('End of [ {} ] Crawling!'.format(location))
+    return total
 
 # 메인 크롤링 함수
 def start_yogiyo_crawling(location_list):
 
+    df = pd.DataFrame()
     for location in location_list:
         try:
             yogiyo = yogiyo_crawling(location)
+            df = pd.concat([df, yogiyo])
             print(location+" 크롤링 완료!")
         except Exception as e:
             print('***** '+location+' 에러 발생 *****')
             print(e)
             pass
+    df.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
 
 # Chrome webdriver - 요기요 메인 페이지 실행
 chrome_options = webdriver.ChromeOptions()
