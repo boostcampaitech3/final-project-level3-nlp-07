@@ -121,11 +121,18 @@ def yogiyo_crawling(location):
             owner_src = driver.find_element(by=By.XPATH, value=owner_xpath)
             custom_len, owner_len = int(custom_src.text), int(owner_src.text)
             print("리뷰수:", custom_len, " 답글수:", owner_len)
+
+            if custom_len == 0:
+                print("해당 지역 카페는 더이상 리뷰가 없습니다...")
+                print("다음 지역으로 넘어가겠습니다..")
+                break
+
             if custom_len//10 > owner_len:
                 print("답글이 10%도 안되서 다음 가게로....")
                 go_back_page()
                 time.sleep(3)
                 continue
+
             total_response += owner_len
 
             # 더보기버튼 클릭
@@ -182,8 +189,8 @@ def yogiyo_crawling(location):
                 deliverys.append(delivery[0].string if delivery else '별점X')  # 별점-배달
                 menus.append(menu[0].string if menu else '메뉴X')  # 주문 메뉴
                 customer_reviews.append(customer_review[0].string)  # 고객 리뷰
-                manager_responses.append(manager_response[0].string.strip())  # 사장님 답글
-
+                manager_responses.append(manager_response[0].string)  # 사장님 답글
+            
             reviews = pd.DataFrame({'업체명':restaurant_name, '맛':tastes,'양':quantitys,
                             '배달':deliverys,'주문메뉴':menus, '고객리뷰':customer_reviews, '사장답글':manager_responses})
             
@@ -225,7 +232,7 @@ chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 driver = webdriver.Chrome(executable_path='/opt/ml/final_project/chromedriver', chrome_options=chrome_options) # 크롬드라이버 경로 설정
 loc_list=[
-    '서울특별시 중구 남대문로5가 73-6 서울역(1호선)'
+    '서울특별시 서대문구 현저동 101 독립문역',
 ]
 
 start_yogiyo_crawling(loc_list)
