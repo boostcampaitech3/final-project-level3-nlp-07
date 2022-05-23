@@ -258,13 +258,14 @@ def yogiyo_crawling(location):
 
 # 메인 크롤링 함수
 def start_yogiyo_crawling(location_list):
-
+    global total_response
     df = pd.DataFrame()
     for location in location_list:
         try:
             yogiyo = yogiyo_crawling(location)
             df = pd.concat([df, yogiyo])
             print(location+" 크롤링 완료!")
+            print("중간 데이터 총량: ", total_response)
         except Exception as e:
             print('***** '+location+' 에러 발생 *****')
             print(e)
@@ -272,6 +273,13 @@ def start_yogiyo_crawling(location_list):
     df.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
 
 # Chrome webdriver - 요기요 메인 페이지 실행
+try:
+    temp_df = pd.read_csv('lkm_total_v1.csv')
+    total_restaurant = set(temp_df['업체명'].unique())
+    print("기존 카페 개수: ",len(total_restaurant))
+except Exception as e:
+    print("기존 카페가 없습니다..")
+    print(e)
 loc_list=[
     '서울특별시 서대문구 현저동 101 독립문역',
 ]
