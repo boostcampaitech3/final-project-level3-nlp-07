@@ -175,6 +175,7 @@ def yogiyo_crawling(location):
                 quantitys = []
                 deliverys = []
                 menus = []
+                custom_ids = []
                 customer_reviews = []
                 manager_responses = []
 
@@ -194,18 +195,19 @@ def yogiyo_crawling(location):
                     quantity = reviews.find_all("span", attrs={"class": "points ng-binding", "ng-show": "review.rating_quantity > 0"})
                     delivery = reviews.find_all("span", attrs={"class": "points ng-binding", "ng-show": "review.rating_delivery > 0"})
                     menu = reviews.find_all("div", class_="order-items default ng-binding")
+                    custom_id = reviews.find_all("span", attrs={"class": "review-id ng-binding", "ng-show": "review.phone"})
                     customer_review = reviews.find_all("p", attrs={"class": "ng-binding", "ng-show": "review.comment"})
-
 
                     tastes.append(taste[0].string if taste else '별점X')  # 별점-맛
                     quantitys.append(quantity[0].string if quantity else '별점X')  # 별점-양
                     deliverys.append(delivery[0].string if delivery else '별점X')  # 별점-배달
                     menus.append(menu[0].string if menu else '메뉴X')  # 주문 메뉴
+                    custom_ids.append(custom_id[0].string) # 고객 id
                     customer_reviews.append(customer_review[0].string)  # 고객 리뷰
-                    manager_responses.append(manager_response[0].string)  # 사장님 답글
+                    manager_responses.append(manager_response[0].string.strip())  # 사장님 답글
 
                 reviews = pd.DataFrame({'업체명':rname.text, '맛':tastes,'양':quantitys,
-                                '배달':deliverys,'주문메뉴':menus, '고객리뷰':customer_reviews, '사장답글':manager_responses})
+                                '배달':deliverys,'주문메뉴':menus, '고객id':custom_ids, '고객리뷰':customer_reviews, '사장답글':manager_responses})
                 
                 print("사장님 답글:",len(manager_responses))
                 total = pd.concat([total, reviews])
