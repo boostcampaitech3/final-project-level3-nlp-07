@@ -204,7 +204,7 @@ def yogiyo_crawling(location):
                     customer_reviews.append(customer_review[0].string)  # 고객 리뷰
                     manager_responses.append(manager_response[0].string)  # 사장님 답글
 
-                reviews = pd.DataFrame({'업체명':restaurant_name, '맛':tastes,'양':quantitys,
+                reviews = pd.DataFrame({'업체명':rname.text, '맛':tastes,'양':quantitys,
                                 '배달':deliverys,'주문메뉴':menus, '고객리뷰':customer_reviews, '사장답글':manager_responses})
                 
                 print("사장님 답글:",len(manager_responses))
