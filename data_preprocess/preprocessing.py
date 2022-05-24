@@ -33,3 +33,4 @@ def preprocessing_cafelist(input_fname="nonpre_total_cafes.csv", output_fname="p
     df['사장답글'] = pd.Series(list(map(masking_cafename, df['사장답글'], df['업체명'])))
     
     df.to_csv(output_fname, encoding='utf-8')
+    print('Pre-processing DONE!')
