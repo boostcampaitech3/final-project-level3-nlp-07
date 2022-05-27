@@ -16,19 +16,24 @@ def concat_cafelist_files(DATA_DIR = "../data/", prefix_fname="total", output_fn
     print('[DONE] Concate cafe_list files!')
 
 
+def masking_username(x, uname): 
+    uname = uname.replace("*", "\*")
+    return re.sub(f"{uname}|{uname[:-1]}|{uname[:-3]}", '#@고객이름#', x) # 영어**님 -> [고객 이름]님
+
+def masking_cafename(x, cafe): 
+    cafename = re.sub(f"{cafe}|{' '.join(cafe.split('-'))}|{'|'.join(cafe.split('-'))}", '#@상호명#', x)
+    return re.sub(r'(#@상호명#){2,}', '#@상호명#', cafename) # 카페이름 -> [상호명]
+
 def preprocessing_cafelist(input_fname="nonpre_total_cafes.csv", output_fname="pre_total_cafes.csv"):
     df = pd.read_csv(input_fname)
     
     print('unique한 사장 답글 개수:', len(df['사장답글'].unique()))
     
     del_space = lambda x: x.str.replace(r'[\s\\n]{2,}', '\n', regex=True) # \n 여러 개 -> 1개 \n
-
-    masking_username = lambda x: x.str.replace(r'[ㄱ-ㅎ가-힣\w ]{0,}(\*\*){0,} {0,}(님|고객님)', ' #@고객이름#님', regex=True) # 영어**님 -> [고객 이름]님
-    masking_cafename = lambda x, cafe: re.sub(r'(#@상호명#){2,}', '#@상호명#', re.sub(f"{cafe}|{' '.join(cafe.split('-'))}|{'|'.join(cafe.split('-'))}", '#@상호명#', x)) # 카페이름 -> [상호명]
     
     df['주문메뉴'] = del_space(df['주문메뉴'])
     df['고객리뷰'] = del_space(df['고객리뷰'])
-    df['사장답글'] = masking_username(del_space(df['사장답글']))
+    df['사장답글'] = list(map(masking_username, del_space(df['사장답글']), df['고객ID']))
     df['사장답글'] = list(map(masking_cafename, df['사장답글'], df['업체명']))
     
     df.to_csv(output_fname, encoding='utf-8')
