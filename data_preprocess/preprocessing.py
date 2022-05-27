@@ -3,6 +3,10 @@ import os
 import numpy as np
 import pandas as pd
 import re
+from collections import defaultdict
+from tqdm import tqdm
+from pororo import Pororo
+
 
 def concat_cafelist_files(DATA_DIR = "../data/", prefix_fname="total", output_fname="nonpre_total_cafes.csv"):
     files = [file for file in listdir(DATA_DIR) if file.startswith(prefix_fname)]
@@ -18,6 +22,8 @@ def concat_cafelist_files(DATA_DIR = "../data/", prefix_fname="total", output_fn
 
 def masking_username(x, uname): 
     uname = uname.replace("*", "\*")
+    if uname == "   손님":
+        return re.sub(r"[ㄱ-ㅎ가-힣\w]+(\*\*){0,} {0,}(님|고객님)", '#@고객이름#', x)
     return re.sub(f"{uname}|{uname[:-1]}|{uname[:-3]}", '#@고객이름#', x) # 영어**님 -> [고객 이름]님
 
 def masking_cafename(x, cafe): 
@@ -38,3 +44,21 @@ def preprocessing_cafelist(input_fname="nonpre_total_cafes.csv", output_fname="p
     
     df.to_csv(output_fname, encoding='utf-8')
     print('[DONE] Pre-processing!')
+
+
+def masking_org_n_loc_entity(x):
+    ner = Pororo(task="ner", lang="ko")
+    ner_masking_map = {"ORGANIZATION": "#@기관#", "LOCATION": "#@위치#"}
+
+    for single_x in tqdm(x):
+        try:
+            res = set([(word, ner_masking_map[ty]) for word, ty in ner(single_x) if ty in list(ner_masking_map.keys())]) # 중복제거
+            tmp = defaultdict(list)
+            [tmp[v].append(k) for k,v in res]
+
+            if res:
+                output = [re.sub(word, sub_word, single_x)  for word, sub_word in res  if '#' not in word and '@' not in word]
+                single_x = output[-1]
+        except Exception as e: # EMOJI 있으면 ERROR
+            # print(e)
+            continue
