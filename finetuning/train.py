@@ -5,14 +5,15 @@ import numpy as np
 from transformers import AutoTokenizer, Trainer, TrainingArguments
 import wandb
 import argparse
-from load_data import *
+from model import *
+from load_dataset import *
 from datasets import load_metric
 #encoding=utf-8
 from transformers import (    
     BartForConditionalGeneration,PreTrainedTokenizerFast,
 
   )
-
+from model import KoBARTConditionalGeneration
 import torch
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -54,19 +55,18 @@ def train(args):
   seed_everything(args.seed)
   # load model and tokenizer
   tokenizer = PreTrainedTokenizerFast.from_pretrained('gogamza/kobart-base-v2', return_special_tokens_mask = True)
-  print(tokenizer.pad_token)
-  # load dataset
-  dataset = pd.read_csv("total_data.csv", encoding='utf-8')
-  
-  train_dataset, dev_dataset = train_test_split(dataset, test_size=0.2, random_state=42)
 
+  # load dataset
+  train_dataset = pd.read_csv("train.csv", encoding='utf-8')
+  dev_dataset = pd.read_csv("valid.csv", encoding='utf-8')
+  
   # make dataset for pytorch.
-  RE_train_dataset = CustomDataset(train_dataset, tokenizer, max_len=512)
-  RE_dev_dataset = CustomDataset(dev_dataset, tokenizer, max_len=512)
+  RE_train_dataset = CustomDataset(train_dataset, tokenizer, max_len=256)
+  RE_dev_dataset = CustomDataset(dev_dataset, tokenizer, max_len=256)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  model = BartForConditionalGeneration.from_pretrained('gogamza/kobart-base-v2')
+  model = KoBARTConditionalGeneration()
   model.to(device)
 
 

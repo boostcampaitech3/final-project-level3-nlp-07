@@ -26,7 +26,7 @@ from datasets import load_dataset, load_metric
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from rouge import *
-
+from model import KoBARTConditionalGeneration
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -73,7 +73,6 @@ def inference(model, tokenized_sent, device, tokenizer):
         output_pred.extend(output_str)
         output_label.extend(label_str)
 
-        break
     
 
     #tqdm()은 단지 코드 수행 과정을 가시적으로 보기 위함이라 신경쓰지 않으셔도 됩니다.
@@ -106,25 +105,23 @@ def main(args):
     tokenizer = PreTrainedTokenizerFast.from_pretrained('gogamza/kobart-base-v2', return_special_tokens_mask = True)
 
     # load dataset
-    dataset = pd.read_csv("total_data.csv", encoding='utf-8')
+    test_dataset = pd.read_csv("test.csv", encoding='utf-8')
 
-    train_dataset, dev_dataset = train_test_split(dataset, test_size=0.2, random_state=42)
+    #train_dataset, dev_dataset = train_test_split(dataset, test_size=0.2, random_state=42)
 
     # make dataset for pytorch.
-    RE_train_dataset = CustomTestDataset(train_dataset, tokenizer, max_len=256)
-    RE_dev_dataset = CustomTestDataset(dev_dataset, tokenizer, max_len=256)
+    RE_test_dataset = CustomTestDataset(test_dataset, tokenizer, max_len=256)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-
     ## load my model
-    model = BartForConditionalGeneration.from_pretrained('./results/checkpoint-500')
-    model.resize_token_embeddings(len(tokenizer))
+    MODEL_NAME = args.model_dir
+    model = BartForConditionalGeneration.from_pretrained('./best_model')
     model.parameters
     model.to(device)
 
     ## predict answer
-    rouge_l, rouge_w = inference(model, RE_dev_dataset, device, tokenizer) # model에서 class 추론
+    rouge_l, rouge_w = inference(model, RE_test_dataset, device, tokenizer) # model에서 class 추론
     print(rouge_l, rouge_w)
 
 
