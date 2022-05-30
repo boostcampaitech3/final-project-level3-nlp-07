@@ -1,6 +1,6 @@
 from os import listdir
 import os
-from collections import defaultdict
+from collections import defaultdict, deque
 import numpy as np
 import pandas as pd
 import re
@@ -47,23 +47,27 @@ def preprocessing_cafelist(input_fname="nonpre_total_cafes.csv", output_fname="p
 
 
 def masking_org_n_loc_entity(x):
+
     ner = Pororo(task="ner", lang="ko")
     ner_masking_map = {"ORGANIZATION": "#@기관#", "LOCATION": "#@위치#"}
 
-    new_x = []
+    new_x = deque([])
     
     for single_x in tqdm(x):
         try:
-            res = set([(word, ner_masking_map[ty]) for word, ty in ner(single_x) if ty in list(ner_masking_map.keys())]) # 중복제거
-            tmp = defaultdict(list)
-            [tmp[v].append(k) for k,v in res]
+            res = defaultdict(list)
+            tmp = set([(word, ner_masking_map[ty]) for word, ty in ner(single_x) if ty in ["ORGANIZATION", "LOCATION"]])
+            _= [res[v].append(k) for k,v in tmp  if '#' not in k and '@' not in k]
 
-            if res:
-                output = [re.sub(word, sub_word, single_x)  for word, sub_word in res  if '#' not in word and '@' not in word]
-                new_x.append(output[-1])
-            else:
-                new_x.append(single_x)
-        except Exception as e: # EMOJI 있으면 ERROR
+            new_single_x = single_x
+
+            if "#@기관#" in res.keys():
+                new_single_x = re.sub('|'.join(res["#@기관#"]), "#@기관#", new_single_x) 
+            if "#@위치#" in res.keys():
+                new_single_x = re.sub('|'.join(res["#@위치#"]), "#@위치#", new_single_x)
+            new_x.append(new_single_x)
+
+        except KeyError as e: # EMOJI 있으면 ERROR
             new_x.append(single_x)
     return new_x
 
@@ -71,6 +75,6 @@ def masking_org_n_loc_entity(x):
 
 if __name__ == "__main__":
     # python preprocessing.py
-    csv_filename = "hh_nonpre_dropdup_사장.csv"
+    csv_filename = "../final_total_data.csv"
 
     preprocessing_cafelist(csv_filename, "pre_"+csv_filename)
