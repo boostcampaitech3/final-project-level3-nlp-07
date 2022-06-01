@@ -2,3 +2,4 @@ google*
 chrome*
 *.csv
 *.out
+**/.ipynb_checkpoints
