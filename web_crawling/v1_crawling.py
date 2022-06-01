@@ -175,6 +175,7 @@ def yogiyo_crawling(location):
                 quantitys = []
                 deliverys = []
                 menus = []
+                custom_ids = []
                 customer_reviews = []
                 manager_responses = []
 
@@ -194,18 +195,19 @@ def yogiyo_crawling(location):
                     quantity = reviews.find_all("span", attrs={"class": "points ng-binding", "ng-show": "review.rating_quantity > 0"})
                     delivery = reviews.find_all("span", attrs={"class": "points ng-binding", "ng-show": "review.rating_delivery > 0"})
                     menu = reviews.find_all("div", class_="order-items default ng-binding")
+                    custom_id = reviews.find_all("span", attrs={"class": "review-id ng-binding", "ng-show": "review.phone"})
                     customer_review = reviews.find_all("p", attrs={"class": "ng-binding", "ng-show": "review.comment"})
-
 
                     tastes.append(taste[0].string if taste else '별점X')  # 별점-맛
                     quantitys.append(quantity[0].string if quantity else '별점X')  # 별점-양
                     deliverys.append(delivery[0].string if delivery else '별점X')  # 별점-배달
                     menus.append(menu[0].string if menu else '메뉴X')  # 주문 메뉴
+                    custom_ids.append(custom_id[0].string) # 고객 id
                     customer_reviews.append(customer_review[0].string)  # 고객 리뷰
-                    manager_responses.append(manager_response[0].string)  # 사장님 답글
+                    manager_responses.append(manager_response[0].string.strip())  # 사장님 답글
 
-                reviews = pd.DataFrame({'업체명':restaurant_name, '맛':tastes,'양':quantitys,
-                                '배달':deliverys,'주문메뉴':menus, '고객리뷰':customer_reviews, '사장답글':manager_responses})
+                reviews = pd.DataFrame({'업체명':rname.text, '맛':tastes,'양':quantitys,
+                                '배달':deliverys,'주문메뉴':menus, '고객id':custom_ids, '고객리뷰':customer_reviews, '사장답글':manager_responses})
                 
                 print("사장님 답글:",len(manager_responses))
                 total = pd.concat([total, reviews])
@@ -258,13 +260,14 @@ def yogiyo_crawling(location):
 
 # 메인 크롤링 함수
 def start_yogiyo_crawling(location_list):
-
+    global total_response
     df = pd.DataFrame()
     for location in location_list:
         try:
             yogiyo = yogiyo_crawling(location)
             df = pd.concat([df, yogiyo])
             print(location+" 크롤링 완료!")
+            print("중간 데이터 총량: ", total_response)
         except Exception as e:
             print('***** '+location+' 에러 발생 *****')
             print(e)
@@ -272,6 +275,13 @@ def start_yogiyo_crawling(location_list):
     df.to_csv("total_data.csv", index=False, encoding="utf-8-sig")
 
 # Chrome webdriver - 요기요 메인 페이지 실행
+try:
+    temp_df = pd.read_csv('lkm_total_v1.csv')
+    total_restaurant = set(temp_df['업체명'].unique())
+    print("기존 카페 개수: ",len(total_restaurant))
+except Exception as e:
+    print("기존 카페가 없습니다..")
+    print(e)
 loc_list=[
     '서울특별시 서대문구 현저동 101 독립문역',
 ]
