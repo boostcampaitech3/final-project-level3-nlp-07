@@ -2,3 +2,16 @@ google*
 chrome*
 *.csv
 *.out
+__pycache__
+events.out*
+*.log
+*.yaml
+*.json
+*.bin
+*.pt
+**/wandb/
+**/.cache/
+**/best_model/
+**/results/
+**/logs/
+**/datasets/
