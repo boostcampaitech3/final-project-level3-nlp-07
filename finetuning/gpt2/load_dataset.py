@@ -60,7 +60,7 @@ class KoGPTSummaryDataset(Dataset):
             len_article = len(article)
             context = article + summary
 
-        labels = [-100] * len_article + summary[1:]
+        labels = summary
         mask = [0] * len_article + [1] * len_summary + [0] * (self.max_len - len_article - len_summary)
 
 
@@ -68,7 +68,7 @@ class KoGPTSummaryDataset(Dataset):
             context = self.add_padding_data(context, self.tok.encode('<pad>')[0])
 
         if len(labels) < self.max_len:
-            labels = self.add_padding_data(labels, -100)
+            labels = self.add_padding_data(labels, self.tok.encode('<pad>')[0])
 
         return {'input_ids': np.array(context, dtype=np.int_),
                 'attention_mask': np.array(mask, dtype=np.int_),

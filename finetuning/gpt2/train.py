@@ -26,23 +26,48 @@ def seed_everything(seed):
     random.seed(seed)
 
 
+# load rouge for validation
+rouge = load_metric("rouge")
+
+def compute_metrics(pred):
+    labels_ids = pred.label_ids
+    pred_ids = pred.predictions
+
+    tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
+                       bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
+                       pad_token='<pad>', mask_token='<mask>', add_special_tokens=['#@상호명#', '#@위치#', '#@기관#']) 
+    
+    # all unnecessary tokens are removed
+    pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+    labels_ids[labels_ids == -100] = tokenizer.pad_token_id
+    label_str = tokenizer.batch_decode(labels_ids, skip_special_tokens=True)
+
+    rouge_output = rouge.compute(predictions=pred_str, references=label_str, rouge_types=["rouge2"])["rouge2"].mid
+
+    return {
+        "rouge2_fmeasure": round(rouge_output.fmeasure, 4),
+    }
+
+
 
 def train(args):
   seed_everything(args.seed)
   # load model and tokenizer
-  tokenizer = PreTrainedTokenizerFast.from_pretrained('skt/kogpt2-base-v2', add_special_tokens = True)
+  tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
+                       bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
+                       pad_token='<pad>', mask_token='<mask>', add_special_tokens=['#@상호명#', '#@위치#', '#@기관#']) 
 
   # load dataset
-  train_dataset = pd.read_csv("train.csv", encoding='utf-8')
-  dev_dataset = pd.read_csv("valid.csv", encoding='utf-8')
-
+  train_dataset = pd.read_csv("train2.csv", encoding='utf-8')
+  dev_dataset = pd.read_csv("valid2.csv", encoding='utf-8')
+  
   # make dataset for pytorch.
-  RE_train_dataset = KoGPTSummaryDataset(train_dataset, tokenizer, max_len=256)
-  RE_dev_dataset = KoGPTSummaryDataset(dev_dataset, tokenizer, max_len=256)
+  RE_train_dataset = KoGPTSummaryDataset(train_dataset, tokenizer, max_len=300)
+  RE_dev_dataset = KoGPTSummaryDataset(dev_dataset, tokenizer, max_len=300)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  model = KoGPTConditionalGeneration()
+  model = model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')#KoGPTConditionalGeneration(tokenizer)
   model.to(device)
 
 
