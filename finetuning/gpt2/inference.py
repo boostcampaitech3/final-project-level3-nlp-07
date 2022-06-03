@@ -40,7 +40,6 @@ def seed_everything(seed):
     np.random.seed(seed)
     random.seed(seed)
 
-
 def top_k_top_p_filtering(logits, top_k=0, top_p=0.0, filter_value=-float('Inf')):
     """ Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
         Args:
@@ -77,52 +76,71 @@ def generate_next_token(logits, temperature=1.0, top_k=0, top_p=0.9):
     next_token = torch.multinomial(probabilities, 1)
     return next_token
 
-
-def inference(model, test_data, labels, device, tokenizer):
+def inference(model, customer, store, dataset, device, tokenizer):
     """
     test dataset을 DataLoader로 만들어 준 후,
     batch_size로 나눠 model이 예측 합니다.
     """
-    SUMMARY = '<unused1>' # review의 시작 부근
+    REVIEW = '<unused1>' # review의 시작 부근
     PTUNING = '<unused2>'
-    EOS = '</s>'
+    BOS = '<bos>'
+    EOS = '<eos>'
     
-    rouge = Rouge(metrics=['rouge-n','rouge-l','rouge-w'])
+    # rouge = Rouge(metrics=['rouge-n','rouge-l','rouge-w'])
 
-    rouge_l = [0,0,0]   #각각 f,p,r
-    rouge_w = [0,0,0]   #각각 f,p,r
+    # rouge_l = [0,0,0]   #각각 f,p,r
+    # rouge_w = [0,0,0]   #각각 f,p,r
 
 
-    #dataloader = DataLoader(tokenized_sent, batch_size=16, shuffle=False)
+    #cdataloader = DataLoader(dataset, batch_size=16, shuffle=False)
     model.eval()
     output_pred = []
     output_label = []
-    
-    
-    for i, data in enumerate(tqdm(test_data)):
-        text = data.replace('\n', '')
-        input_tokens = tokenizer.encode(PTUNING)* 10 + tokenizer.encode(text) + tokenizer.encode(SUMMARY)
+
+    # beam search https://huggingface.co/blog/how-to-generate
+    # for i, data in enumerate(tqdm(customer)):
+    #     text = data.replace('\n', '')
+    #     input_tokens = tokenizer.encode(PTUNING)* 10 + tokenizer.encode(text) + tokenizer.encode(REVIEW)
+    #     input_tensor = torch.tensor(input_tokens).unsqueeze(0).to('cuda')
+
+    #     eos_id = tokenizer.encode(EOS)[0]
+
+    #     label = store[i].replace('\n', '')
+        
+    #     while True:
+    #         pred = model(input_tensor)
+    #         next_token = generate_next_token(pred.logits, temperature=1.0, top_p=0.8).to('cuda')
+    #         if (next_token.item() == eos_id) or (input_tensor.shape[1] > 100):
+    #             break
+    #         else:
+    #             input_tensor = torch.cat([input_tensor, next_token.unsqueeze(0)],1).to('cuda')
+        
+    #     output = tokenizer.decode(input_tensor[0], skip_special_tokens=True)
+    #     print("output:", output)
+    #     print("label: ", label)
+        
+    #     break
+        
+    for i, data in enumerate(tqdm(customer)):
+        print('text:', data)
+        input_tokens = tokenizer.encode(BOS) + tokenizer.encode(data) + tokenizer.encode(REVIEW)
         input_tensor = torch.tensor(input_tokens).unsqueeze(0).to('cuda')
 
-        eos_id = tokenizer.encode(EOS)[0]
+        outputs = model.generate(
+                input_ids=input_tensor,
+                max_length=50, repetition_penalty=1.2, do_sample=True, num_return_sequences=3)
 
-        label = labels[i].replace('\n', '')
-        
-        while True:
-            pred = model(input_tensor)
-            next_token = generate_next_token(pred.logits, temperature=1.0, top_p=0.8).to('cuda')
-            if (next_token.item() == eos_id) or (input_tensor.shape[1] > 100):
-                break
-            else:
-                input_tensor = torch.cat([input_tensor, next_token.unsqueeze(0)],1).to('cuda')
-        
-        output = tokenizer.decode(input_tensor[0], skip_special_tokens=True)
-        print(output)
-        print(label)
+        output = tokenizer.decode(outputs[0])#, skip_special_tokens=True)
+        ret = re.sub(r'(<s>|</s>)', '' , ''.join(output).replace('▁', ' ').strip())
+        print('Generated {}: {}'.format(i, ret))
 
-
+        label = store[i].replace('\n', '')
+        print('label {}: {}'.format(i, label))
+        print('='*30)
+    
+    for i in tqdm(range(len(output_pred)),desc="(평가중...)",ascii=True):
         
-        result = rouge.get_scores(output, label)
+        result = rouge.get_scores(output_pred[i], output_label[i])
 
         rouge_l[0] += float(result['rouge-l']['f'])
         rouge_l[1] += float(result['rouge-l']['p'])
@@ -134,6 +152,9 @@ def inference(model, test_data, labels, device, tokenizer):
         for j in range(len(rouge_l)):
             rouge_l[j] /= (i+1)
             rouge_w[j] /= (i+1)
+        
+        print(rouge_l)    
+        break
 
     return rouge_l, rouge_w
 
@@ -145,32 +166,27 @@ def main(args):
     seed_everything(42)
     # load model and tokenizer
     tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
-                       bos_token='</s>', eos_token='</s>', unk_token='<unk>',
-                       pad_token='<pad>', mask_token='<mask>') 
+                       bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
+                       pad_token='<pad>', mask_token='<mask>', add_special_tokens=['#@상호명#', '#@위치#', '#@기관#']) 
 
     # load dataset
-    test_dataset = pd.read_csv("test1.csv", encoding='utf-8')
-    test_data = test_dataset['고객리뷰'].tolist()
-    test_review = test_dataset['사장답글'].tolist()
-    #train_dataset, dev_dataset = train_test_split(dataset, test_size=0.2, random_state=42)
-
+    test_dataset = pd.read_csv("test2.csv", encoding='utf-8')
+    customer = test_dataset['고객리뷰'].tolist()
+    store = test_dataset['사장답글'].tolist()
+    
+    
     # make dataset for pytorch.
-    #RE_test_dataset = KoGPTSummaryTestDataset(test_dataset, tokenizer, max_len=300)
+    RE_test_dataset = KoGPTSummaryTestDataset(test_dataset, tokenizer, max_len=300)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    ## load my model
-    #model = GPT2LMHeadModel.from_pretrained('/opt/ml/final-project-level3-nlp-07/finetuning/gpt2/full_reviews/checkpoint-16000/pytorch_model.bin')
-    ## load my model
-    #model = KoGPTConditionalGeneration()
-    #model = torch.load("./best_model/pytorch_model.bin")
-    
-    model = GPT2LMHeadModel.from_pretrained('./results/checkpoint-5000')
+    ## load my model    
+    model = GPT2LMHeadModel.from_pretrained('./results/checkpoint-9500')
     #model.load_state_dict(torch.load('/opt/ml/final-project-level3-nlp-07/finetuning/gpt2/full_reviews/checkpoint-16000/pytorch_model.bin'))
     model.to(device)
 
     ## predict answer
-    rouge_l, rouge_w = inference(model, test_data, test_review, device, tokenizer) # model에서 class 추론
+    rouge_l, rouge_w = inference(model, customer, store, RE_test_dataset, device, tokenizer) # model에서 class 추론
     print(rouge_l, rouge_w)
 
 

@@ -2,12 +2,11 @@ import torch
 import random
 import sklearn
 import numpy as np
-from transformers import AutoTokenizer, Trainer, TrainingArguments
+from transformers import AutoTokenizer, Trainer, TrainingArguments, DataCollatorForLanguageModeling, AutoConfig
 import wandb
 import argparse
 from datasets import load_metric
 #encoding=utf-8
-from transformers import PreTrainedTokenizerFast
 import torch
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -26,28 +25,6 @@ def seed_everything(seed):
     random.seed(seed)
 
 
-# load rouge for validation
-rouge = load_metric("rouge")
-
-def compute_metrics(pred):
-    labels_ids = pred.label_ids
-    pred_ids = pred.predictions
-
-    tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
-                       bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
-                       pad_token='<pad>', mask_token='<mask>', add_special_tokens=['#@상호명#', '#@위치#', '#@기관#']) 
-    
-    # all unnecessary tokens are removed
-    pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
-    labels_ids[labels_ids == -100] = tokenizer.pad_token_id
-    label_str = tokenizer.batch_decode(labels_ids, skip_special_tokens=True)
-
-    rouge_output = rouge.compute(predictions=pred_str, references=label_str, rouge_types=["rouge2"])["rouge2"].mid
-
-    return {
-        "rouge2_fmeasure": round(rouge_output.fmeasure, 4),
-    }
-
 
 
 def train(args):
@@ -55,11 +32,16 @@ def train(args):
   # load model and tokenizer
   tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
                        bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
-                       pad_token='<pad>', mask_token='<mask>', add_special_tokens=['#@상호명#', '#@위치#', '#@기관#']) 
+                       pad_token='<pad>', mask_token='<mask>') 
+  
+  special_tokens_dict = {'additional_special_tokens': ['#@상호명#', '#@위치#', '#@기관#']}
+  tokenizer.add_special_tokens(special_tokens_dict)
+
+  print({k:v for k,v in zip(tokenizer.all_special_tokens, tokenizer.all_special_ids)})
 
   # load dataset
-  train_dataset = pd.read_csv("train2.csv", encoding='utf-8')
-  dev_dataset = pd.read_csv("valid2.csv", encoding='utf-8')
+  train_dataset = pd.read_csv("train.csv", encoding='utf-8')
+  dev_dataset = pd.read_csv("val.csv", encoding='utf-8')
   
   # make dataset for pytorch.
   RE_train_dataset = KoGPTSummaryDataset(train_dataset, tokenizer, max_len=300)
@@ -67,9 +49,23 @@ def train(args):
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-  model = model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')#KoGPTConditionalGeneration(tokenizer)
+  config = AutoConfig.from_pretrained('skt/kogpt2-base-v2', 
+                                    bos_token_id=tokenizer.bos_token_id,
+                                    eos_token_id=tokenizer.eos_token_id,
+                                    pad_token_id=tokenizer.pad_token_id,
+                                    sep_token_id=tokenizer.sep_token_id,
+                                    unk_token_id=tokenizer.unk_token_id,
+                                    output_hidden_states=False)
+  
+  model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2', config=config)
+  model.resize_token_embeddings(len(tokenizer))
+
   model.to(device)
 
+  data_collator = DataCollatorForLanguageModeling(
+          tokenizer=tokenizer,
+          mlm=False
+      )
 
   wandb.init(project=args.project_name, entity=args.entity_name)
   wandb.run.name = args.run_name
@@ -104,6 +100,7 @@ def train(args):
     args=training_args,                  # training arguments, defined above
     train_dataset=RE_train_dataset,         # training dataset
     eval_dataset=RE_dev_dataset,             # evaluation dataset
+    data_collator=data_collator,
     #compute_metrics=compute_metrics         # define metrics function
   )
 
@@ -112,7 +109,9 @@ def train(args):
   trainer.train()
   wandb.finish()
 
-  model.save_pretrained(args.save_pretrained)
+  trainer.save_model()
+  tokenizer.save_pretrained("./tokenizer", legacy_format=False)
+
 
 def main(args):
   train(args)
@@ -122,12 +121,11 @@ if __name__ == '__main__':
   
   # Data and model checkpoints directories
   parser.add_argument("--seed", type=int, default=42, help="random seed (default: 42)")
-  parser.add_argument("--model", type=str, default="klue/bert-base", help="model to train (default: klue/bert-base)")
   parser.add_argument("--train_data", type=str, default="../dataset/train/train.csv", help="train_data directory (default: ../dataset/train/train.csv)")
   parser.add_argument("--output_dir", type=str, default="./results", help="directory which stores various outputs (default: ./results)")
   parser.add_argument("--save_total_limit", type=int, default=10, help="max number of saved models (default: 5)")
   parser.add_argument("--save_steps", type=int, default=500, help="interval of saving model (default: 500)")
-  parser.add_argument("--num_train_epochs", type=int, default=10, help="number of train epochs (default: 20)")
+  parser.add_argument("--num_train_epochs", type=int, default=5, help="number of train epochs (default: 20)")
   parser.add_argument("--learning_rate", type=float, default=3e-5, help="learning rate (default: 5e-5)")
   parser.add_argument("--per_device_train_batch_size", type=int, default=16, help=" (default: 16)")
   parser.add_argument("--per_device_eval_batch_size", type=int, default=16, help=" (default: 16)")
