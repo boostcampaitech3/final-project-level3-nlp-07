@@ -5,11 +5,11 @@ import wandb
 import argparse
 from datasets import load_from_disk
 from transformers import (    
+    Trainer,
+    TrainingArguments,
+    BartForConditionalGeneration,
     BartModel,
     PreTrainedTokenizerFast,
-    Seq2SeqTrainer,
-    Seq2SeqTrainingArguments,
-    AutoModelForSeq2SeqLM,
     DataCollatorForSeq2Seq,
   )
 import torch
@@ -56,7 +56,7 @@ def train(args):
 
   # load model
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-  model = AutoModelForSeq2SeqLM.from_pretrained('gogamza/kobart-base-v2')
+  model = BartForConditionalGeneration.from_pretrained('gogamza/kobart-base-v2')
   model.to(device)
 
 
@@ -65,7 +65,7 @@ def train(args):
   
   # 사용한 option 외에도 다양한 option들이 있습니다.
   # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
-  training_args = Seq2SeqTrainingArguments(
+  training_args = TrainingArguments(
     output_dir=args.output_dir,                     # output directory
     save_total_limit=args.save_total_limit,         # number of total save model.
     save_steps=args.save_steps,                     # model saving step.
@@ -86,7 +86,7 @@ def train(args):
     fp16=True,                # Whether to use fp16 16-bit (mixed) precision training instead of 32-bit training.     
   )
   
-  trainer = Seq2SeqTrainer(
+  trainer = Trainer(
     model=model,                         # the instantiated 🤗 Transformers model to be trained
     args=training_args,                  # training arguments, defined above
     train_dataset=train_dataset_tokenized,         # training dataset
@@ -128,7 +128,7 @@ if __name__ == '__main__':
   parser.add_argument("--eval_steps", type=int, default=500, help=" (default: 500)")
   parser.add_argument("--load_best_model_at_end", type=bool, default=True, help=" (default: True)")
   parser.add_argument("--save_pretrained", type=str, default="./best_model", help=" (default: ./best_model)")
-  parser.add_argument('--run_name', type=str, default="huggingface_test")
+  parser.add_argument('--run_name', type=str, default="huggingface_test_3epoch")
   parser.add_argument("--n_splits", type=int, default=1, help=" (default: )")
   parser.add_argument("--test_size", type=float, default=0.1, help=" (default: )")
   parser.add_argument("--project_name", type=str, default="[Final] KoBART", help=" (default: )")
