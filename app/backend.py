@@ -22,9 +22,10 @@ async def get_history() -> List[str]:
 
 
 @app.post("/generate", description="입력에 대한 사장답글 생성합니다")
-async def get_generated_string(input_string: str,
-                                model: nn.Module = Depends(get_model)):
+async def get_generated_string(input_string: str):
+    model = get_model(model_type='KoBART', model_path='./finetuning/kobart_huggingface/best_model/')
     generated_string = predict_from_model(model=model, input_string=input_string)
+    
     history.append(generated_string)
     return generated_string
 
