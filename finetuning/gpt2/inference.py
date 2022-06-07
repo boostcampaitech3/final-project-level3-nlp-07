@@ -37,7 +37,7 @@ def inference(model, dataset, device, tokenizer, type):
     output_pred = []
     output_label = []
     
-    for i, _ in enumerate(tqdm(range(5))):#len(dataset)))):
+    for i, _ in enumerate(tqdm(range(len(dataset)))):
         input.append(dataset['고객리뷰'].iloc[i])
         input_tokens = tokenizer.encode(BOS) + tokenizer.encode("맛: ") + tokenizer.encode(dataset['맛'].iloc[i]) + \
                         tokenizer.encode("양: ") + tokenizer.encode(dataset['양'].iloc[i]) +  tokenizer.encode("배달: ") + tokenizer.encode(dataset['배달'].iloc[i]) + \
@@ -55,7 +55,7 @@ def inference(model, dataset, device, tokenizer, type):
         elif type == "beam":
             outputs = model.generate(input_ids=input_tensor, max_length=128, num_beams=5, no_repeat_ngram_size=2, early_stopping=True)
 
-        output = tokenizer.decode(outputs[0]).split('<unused1>')[-1].strip().split('<eos>')[0].strip()
+        output = tokenizer.decode(outputs[0])#.split('<unused1>')[-1].strip().split('<eos>')[0].strip()
         print(output)
         output_pred.append(output)
 
@@ -64,7 +64,7 @@ def inference(model, dataset, device, tokenizer, type):
 
 
     df = pd.DataFrame({'고객리뷰': input, '예측답글': output_pred, '사장답글': output_label})
-    df.to_csv("emotion_menu_result.csv", encoding='utf-8')
+    df.to_csv("result_%s.csv" % str(type), encoding='utf-8')
 
 
 
@@ -88,7 +88,7 @@ def main(args):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     ## load my model    
-    model = GPT2LMHeadModel.from_pretrained('./with_menu/checkpoint-15000')
+    model = GPT2LMHeadModel.from_pretrained('./score_concat/checkpoint-10000')
     model.resize_token_embeddings(len(tokenizer))
     model.to(device)
 
