@@ -37,15 +37,13 @@ def train(args):
   special_tokens_dict = {'additional_special_tokens': ['#@상호명#', '#@위치#', '#@기관#']}
   tokenizer.add_special_tokens(special_tokens_dict)
 
-  print({k:v for k,v in zip(tokenizer.all_special_tokens, tokenizer.all_special_ids)})
-
   # load dataset
   train_dataset = pd.read_csv("train.csv", encoding='utf-8')
   dev_dataset = pd.read_csv("val.csv", encoding='utf-8')
   
   # make dataset for pytorch.
-  RE_train_dataset = KoGPTSummaryDataset(train_dataset, tokenizer, max_len=300)
-  RE_dev_dataset = KoGPTSummaryDataset(dev_dataset, tokenizer, max_len=300)
+  RE_train_dataset = KoGPTSummaryDataset(train_dataset, tokenizer, max_len=256)
+  RE_dev_dataset = KoGPTSummaryDataset(dev_dataset, tokenizer, max_len=256)
 
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
