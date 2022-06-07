@@ -34,7 +34,7 @@ def train(args):
                        bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
                        pad_token='<pad>', mask_token='<mask>') 
   
-  special_tokens_dict = {'additional_special_tokens': ['#@상호명#', '#@위치#', '#@기관#']}
+  special_tokens_dict = {'additional_special_tokens': ['#@상호명#', '#@위치#', '#@기관#', '#@고객이름#', '#@전화번호#']}
   tokenizer.add_special_tokens(special_tokens_dict)
 
   # load dataset

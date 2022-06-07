@@ -46,8 +46,11 @@ class KoGPTSummaryDataset(Dataset):
     
     def __getitem__(self, idx):
         instance = self.docs.iloc[idx]
-        
-        article = self.tok.encode(self.bos_token) + self.tok.encode(instance['주문메뉴']) + self.tok.encode(instance['고객리뷰'])
+
+
+        article = self.tok.encode(self.bos_token) + self.tok.encode("맛: ") + self.tok.encode(instance['맛']) + \
+                    self.tok.encode("양: ") + self.tok.encode(instance['양']) + self.tok.encode("배달: ") + self.tok.encode(instance['배달']) + \
+                    self.tok.encode("리뷰: ") + self.tok.encode(instance['고객리뷰'])
         len_article = len(article)
 
         summary = self.tok.encode(self.store_review_token) + self.tok.encode(instance['사장답글']) + self.tok.encode(self.eos_token)
