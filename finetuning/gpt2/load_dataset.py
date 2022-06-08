@@ -7,17 +7,17 @@ import pandas as pd
 from tqdm import tqdm, trange
 from torch.utils.data import Dataset, DataLoader
 
-MASK = '<unused0>'
+MASK = '<mask>'
 STORE_REVIEW = '<unused1>'
-BOS = '<s>' #0
-EOS = '</s>' #1
+BOS = '<bos>' #0
+EOS = '<eos>' #1
 PAD = '<pad>' #3
 
 class KoGPTSummaryDataset(Dataset):
-    def __init__(self, dataset, tok, max_len=128,
+    def __init__(self, dataset, tok, max_len=300,
                  bos_token=BOS, eos_token=EOS,
                  pad_token=PAD, mask_token=MASK,
-                 review_token = STORE_REVIEW,
+                 store_review_token = STORE_REVIEW,
                  ignore_index = -100,
                  prompt_length = 0
                 ):
@@ -30,7 +30,8 @@ class KoGPTSummaryDataset(Dataset):
         self.eos_token = eos_token
         self.pad_token = pad_token
         self.mask_token = mask_token
-        self.review_token = review_token
+        self.store_review_token = store_review_token
+
         self.ignore_index = ignore_index
         self.prompt_length = prompt_length
 
@@ -46,10 +47,10 @@ class KoGPTSummaryDataset(Dataset):
     def __getitem__(self, idx):
         instance = self.docs.iloc[idx]
         
-        article = self.tok.encode(self.bos_token) + self.tok.encode(instance['고객리뷰'])
+        article = self.tok.encode(self.bos_token) + self.tok.encode(instance['주문메뉴']) + self.tok.encode(instance['고객리뷰'])
         len_article = len(article)
 
-        summary = self.tok.encode(self.review_token) + self.tok.encode(instance['사장답글']) + self.tok.encode(self.eos_token)
+        summary = self.tok.encode(self.store_review_token) + self.tok.encode(instance['사장답글']) + self.tok.encode(self.eos_token)
         len_summary = len(summary)
 
         context = article + summary
@@ -60,7 +61,7 @@ class KoGPTSummaryDataset(Dataset):
             len_article = len(article)
             context = article + summary
 
-        labels = [-100] * len_article + summary[1:]
+        labels = summary
         mask = [0] * len_article + [1] * len_summary + [0] * (self.max_len - len_article - len_summary)
 
 
@@ -68,7 +69,7 @@ class KoGPTSummaryDataset(Dataset):
             context = self.add_padding_data(context, self.tok.encode('<pad>')[0])
 
         if len(labels) < self.max_len:
-            labels = self.add_padding_data(labels, -100)
+            labels = self.add_padding_data(labels, self.tok.encode('<pad>')[0])
 
         return {'input_ids': np.array(context, dtype=np.int_),
                 'attention_mask': np.array(mask, dtype=np.int_),
@@ -76,3 +77,5 @@ class KoGPTSummaryDataset(Dataset):
 
     def __len__(self):
         return self.len
+    
+ 
