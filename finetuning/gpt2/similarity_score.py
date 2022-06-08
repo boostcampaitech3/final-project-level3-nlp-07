@@ -127,4 +127,4 @@ for path in paths:
         except Exception as e:
             total_sim_SBERT.append(0)
     df['SBERT(사장-예측)'] = total_sim_SBERT
-    df.to_csv(path)
+    df.to_csv(path, index=False)
