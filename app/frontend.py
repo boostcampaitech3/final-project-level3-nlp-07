@@ -1,21 +1,40 @@
+# streamlit run app/frontend.py --server.port 30002 --server.fileWatcherType none
 import requests
 import streamlit as st
 
+st.set_page_config(page_title="카페 사장답글 생성 서비스", page_icon="☕️", layout="centered")
 
-st.set_page_config(layout="wide")
+st.title("배달 앱 카페 사장답글 생성 모델")
 
-st.title("사장답글 Gereration Model")
-customer_review = "크로플이 맛잇으셨군요."
+with st.form(key="customer_form", clear_on_submit=True):
+    store_name = st.text_input("점포명", placeholder="점포명을 입력해주세요.")
+    customer_name = st.text_input("손님 이름", placeholder="손님 이름을 입력해주세요.")
+
+    star_cols = st.columns(3)
+    taste_star = star_cols[0].radio("맛 별점", ("1", "2", "3", "4", "5", "별점X"))
+    quantity_star = star_cols[1].radio("양 별점", ("1", "2", "3", "4", "5", "별점X"))
+    delivery_star =  star_cols[2].radio("배달 별점", ("1", "2", "3", "4", "5", "별점X"))
+    customer_review = st.text_area("손님 리뷰", placeholder="손님 리뷰를 입력해주세요.", key="text")
+
+    submit = st.form_submit_button(label="사장 답글 생성")
+
 
 if customer_review:
-    input_dict = {
-        "input_string": customer_review
+    punct = ('!', '?', '.')
+    input_str = f'맛:{taste_star} 양:{quantity_star} 배달:{delivery_star}'
+
+    params_dict = {
+        "input_str": input_str, 
+        "store_name": store_name,
+        "customer_name": customer_name
     }
     
     with st.spinner("Generating..."):
-        response = requests.post("http://localhost:8001/generate", params=input_dict)
-        generated_string = response.text
-        
         st.header("사장님 답글")
-        st.write(generated_string)
+
+        response_kobart = requests.post("http://localhost:8001/generate_from_kobart", params=params_dict)
+        st.write(response_kobart.text)
+
+        response_kogpt2 = requests.post("http://localhost:8001/generate_from_kogpt2", params=params_dict)
+        st.write(response_kogpt2.text)
 

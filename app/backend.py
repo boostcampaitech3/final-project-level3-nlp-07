@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 import torch.nn as nn
-from app.model import get_model, predict_from_model
+from app.predict import load_model, predict_from_model
 
 app = FastAPI()
 
@@ -21,11 +21,27 @@ async def get_history() -> List[str]:
     return history
 
 
-@app.post("/generate", description="입력에 대한 사장답글 생성합니다")
-async def get_generated_string(input_string: str):
-    model = get_model(model_type='KoBART', model_path='./finetuning/kobart_huggingface/best_model/')
-    generated_string = predict_from_model(model=model, input_string=input_string)
-    
+@app.post("/generate_from_kobart", description="입력에 대한 사장답글 생성합니다")
+async def get_generated_string(input_str, store_name, customer_name):
+
+    model_kobart = load_model(model_type='KoBART', model_path='./finetuning/kobart/best_model/')
+    generated_string = predict_from_model(model=model_kobart, 
+                        input_str=input_str, 
+                        store_name=store_name,
+                        customer_name=customer_name)
+
     history.append(generated_string)
     return generated_string
 
+
+@app.post("/generate_from_kogpt2", description="입력에 대한 사장답글 생성합니다")
+async def get_generated_string(input_str, store_name, customer_name):
+
+    model_kogpt2 = load_model(model_type='KoGPT2', model_path=None)
+    generated_string = predict_from_model(model=model_kogpt2, 
+                        input_str=input_str, 
+                        store_name=store_name,
+                        customer_name=customer_name)
+
+    history.append(generated_string)
+    return generated_string
