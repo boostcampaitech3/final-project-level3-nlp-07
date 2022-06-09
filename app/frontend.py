@@ -1,10 +1,11 @@
-# streamlit run app/frontend.py --server.port 30002 --server.fileWatcherType none
 import requests
 import streamlit as st
 
 st.set_page_config(page_title="카페 사장답글 생성 서비스", page_icon="☕️", layout="centered")
 
-st.title("배달 앱 카페 사장답글 생성 모델")
+st.title("☕️ 배달 앱 리뷰 답글 생성봇")
+
+st.markdown("안녕하세요! 저는 카페 사장님들의 빛과 소금이 될 배달 앱 리뷰 답글 생성봇 입니다!", unsafe_allow_html=True)
 
 with st.form(key="customer_form", clear_on_submit=True):
     store_name = st.text_input("점포명", placeholder="점포명을 입력해주세요.")

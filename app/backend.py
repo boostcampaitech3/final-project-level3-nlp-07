@@ -37,7 +37,9 @@ async def get_generated_string(input_str, store_name, customer_name):
 @app.post("/generate_from_kogpt2", description="입력에 대한 사장답글 생성합니다")
 async def get_generated_string(input_str, store_name, customer_name):
 
-    model_kogpt2 = load_model(model_type='KoGPT2', model_path=None)
+    model_kogpt2 = load_model(model_type='KoGPT2', 
+                                model_path='./finetuning/kogpt2/epoch=04.ckpt', 
+                                hparams_file='./finetuning/kogpt2/hparams.yaml')
     generated_string = predict_from_model(model=model_kogpt2, 
                         input_str=input_str, 
                         store_name=store_name,
