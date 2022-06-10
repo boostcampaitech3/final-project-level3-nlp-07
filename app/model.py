@@ -1,10 +1,17 @@
+import yaml
 import torch
 import torch.nn as nn
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer
 from transformers import PreTrainedTokenizerFast
 from transformers import GPT2LMHeadModel, BartForConditionalGeneration
+import streamlit as st
+from app.postprocess import postprocess
+from app.train import KoGPTConditionalGeneration
 
 special_tokens = ['#@상호명#', '#@고객이름#', '#@위치#', '#@기관#', '#@전화번호#']
 
+
+@st.cache
 class KoBART(nn.Module):
     def __init__(self, model_path: str = None):
         super().__init__()
@@ -19,10 +26,10 @@ class KoBART(nn.Module):
         self.model = BartForConditionalGeneration.from_pretrained(model_path if model_path else MODEL_NAME)
         self.model.resize_token_embeddings(len(self.tokenizer))
 
-    def forward(self, sent) -> torch.Tensor:
-        sent = sent.replace('\n', '')
+    def forward(self, input_str, store_name, customer_name) -> torch.Tensor:
+        input_str = input_str.replace('\n', '')
 
-        input_ids = self.tokenizer.encode(sent, return_tensors='pt')
+        input_ids = self.tokenizer.encode(input_str, return_tensors='pt')
         output = self.model.generate(input_ids, 
                                     eos_token_id=self.tokenizer.eos_token_id, 
                                     max_length=128, 
@@ -30,52 +37,49 @@ class KoBART(nn.Module):
                                     no_repeat_ngram_size=2, 
                                     early_stopping=True,
                                     use_cache=True)
+
         output = self.tokenizer.decode(output[0], skip_special_tokens=True)
-        return output
+        processed_output = postprocess(output, store_name=store_name, customer_name=customer_name)
+        return processed_output
 
 
-class SktKoGPT2(nn.Module):
-    def __init__(self):
+@st.cache
+class KoGPT2(nn.Module):
+    def __init__(self, hparams_file: str = None, model_path: str = None):
         super().__init__()
-        MODEL_NAME = "skt/kogpt2-base-v2"
-        self.max_length_token = 128
-        special_tokens = ['#@상호명#', '#@고객이름#', '#@위치#', '#@기관#', '#@전화번호#']
+        self.max_length_token = 256
 
-        self.tokenizer = PreTrainedTokenizerFast.from_pretrained(MODEL_NAME,
-                bos_token='</s>', eos_token='</s>', unk_token='<unk>',
-                pad_token='<pad>', mask_token='<mask>', special_tokens=special_tokens)
+        with open(hparams_file) as f:
+            hparams = yaml.load(f)
+
+        self.SUMMARY = '<unused1>'
+        self.PTUNING = '<unused2>'
+        self.EOS = '</s>'
+        self.BOS = '</s>'
+
+        self.inf = KoGPTConditionalGeneration.load_from_checkpoint(model_path, hparams=hparams)
+        # self.inf.model.resize_token_embeddings(len(self.tokenizer))
+
+        self.tokenizer = self.inf.tokenizer
         special_tokens_dict = {'additional_special_tokens': special_tokens}
         self.tokenizer.add_special_tokens(special_tokens_dict)
-        
-        self.model = GPT2LMHeadModel.from_pretrained(MODEL_NAME)
-        self.model.resize_token_embeddings(len(self.tokenizer))
-    
-    def tokenize(self, sent):
-        return self.tokenizer.tokenize(sent) # tokenized string (with prefix '_')
-    
-    def forward(self, x) -> torch.Tensor:
-        input_ids = self.tokenizer.encode(x, return_tensors='pt') # encoded tokens
-        gen_ids = self.model.generate(input_ids,
-                                        max_length=self.max_length_token,
-                                        repetition_penalty=2.0,
-                                        pad_token_id=self.tokenizer.pad_token_id,
-                                        eos_token_id=self.tokenizer.eos_token_id,
-                                        bos_token_id=self.tokenizer.bos_token_id,
-                                        use_cache=True)
-        generated = self.tokenizer.decode(gen_ids[0])
-        return generated
 
+    def forward(self, input_str, store_name, customer_name) -> torch.Tensor:
+        input_str = input_str.replace('\n', '')
 
-def get_model(model_type: str = 'KoBART', model_path: str = None) -> nn.Module:
-    if model_type == 'KoBART':
-        model = KoBART(model_path=model_path)
-    
-    elif model_type == 'SktKoGPT2':
-        model = SktKoGPT2()
-        if model_path:
-            model.load_state_dict(torch.load(model_path))
-    return model
+        try:
+            input_tokens = self.tokenizer.encode(self.BOS) + self.tokenizer.encode(input_str) + self.tokenizer.encode(self.SUMMARY)
+            input_tensor = torch.tensor(input_tokens).unsqueeze(0)
+            output = self.inf.model.generate(input_ids=input_tensor, 
+                                                max_length=self.max_length_token, 
+                                                num_beams=5, 
+                                                no_repeat_ngram_size=2, 
+                                                early_stopping=True,
+                                                use_cache=True)
+            predict = self.tokenizer.decode(output[0], skip_special_tokens=False).split(self.SUMMARY)[-1].strip()
+        except Exception as e:
+            predict = "오류 발생"
 
-def predict_from_model(model: nn.Module, input_string: str) -> str:
-    output_string = model.forward(input_string)
-    return output_string
+        processed_output = postprocess(predict, store_name=store_name, customer_name=customer_name)
+        return processed_output
+
