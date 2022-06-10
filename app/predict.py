@@ -1,20 +1,6 @@
-# import streamlit as st
-import numpy as np
-import random
-from typing import List, Tuple
-import torch
 import torch.nn as nn
 from app.model import KoBART, KoGPT2
-import streamlit as st
-
-def seed_everything(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed)
-    random.seed(seed)
+from app.train import seed_everything
 
 
 def load_model(model_type: str = 'KoBART', model_path: str = None, hparams_file: str = None) -> nn.Module:

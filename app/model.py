@@ -4,14 +4,12 @@ import torch.nn as nn
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer
 from transformers import PreTrainedTokenizerFast
 from transformers import GPT2LMHeadModel, BartForConditionalGeneration
-import streamlit as st
 from app.postprocess import postprocess
 from app.train import KoGPTConditionalGeneration
 
 special_tokens = ['#@상호명#', '#@고객이름#', '#@위치#', '#@기관#', '#@전화번호#']
 
 
-@st.cache
 class KoBART(nn.Module):
     def __init__(self, model_path: str = None):
         super().__init__()
@@ -43,7 +41,6 @@ class KoBART(nn.Module):
         return processed_output
 
 
-@st.cache
 class KoGPT2(nn.Module):
     def __init__(self, hparams_file: str = None, model_path: str = None):
         super().__init__()

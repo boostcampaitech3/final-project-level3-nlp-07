@@ -1,4 +1,3 @@
-import torch.nn as nn
 
 def postprocess(x, store_name, customer_name):
     output_x = x.replace("#@상호명#", store_name)

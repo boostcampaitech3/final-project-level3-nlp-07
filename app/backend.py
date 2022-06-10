@@ -1,9 +1,5 @@
 from fastapi import FastAPI
-from fastapi.param_functions import Depends
-from pydantic import BaseModel, Field
 from typing import List
-
-import torch.nn as nn
 from app.predict import load_model, predict_from_model
 
 app = FastAPI()

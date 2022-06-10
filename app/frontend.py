@@ -20,9 +20,9 @@ with st.form(key="customer_form", clear_on_submit=False):
     submit = st.form_submit_button(label="사장 답글 생성")
 
 
-if customer_review:
+if submit:
     punct = ('!', '?', '.')
-    input_str = f'맛:{taste_star} 양:{quantity_star} 배달:{delivery_star}'
+    input_str = f'맛: {taste_star} 양: {quantity_star} 배달: {delivery_star} 리뷰: {customer_review}'
 
     params_dict = {
         "input_str": input_str, 
