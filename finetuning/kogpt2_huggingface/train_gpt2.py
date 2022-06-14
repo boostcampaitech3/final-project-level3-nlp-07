@@ -5,10 +5,11 @@ import wandb
 import argparse
 from datasets import load_from_disk
 from transformers import (    
+    AutoConfig,
+    GPT2LMHeadModel,
+    GPT2Model,
     Trainer,
     TrainingArguments,
-    BartForConditionalGeneration,
-    BartModel,
     PreTrainedTokenizerFast,
     DataCollatorForSeq2Seq,
   )
@@ -31,24 +32,23 @@ def train(args):
   val_dataset = load_from_disk('./datasets/val_dataset')
 
   # load tokenizer and model for collator
-  tokenizer = PreTrainedTokenizerFast.from_pretrained('gogamza/kobart-base-v2')
+  tokenizer = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
+                       bos_token='<bos>', eos_token='<eos>', unk_token='<unk>',
+                       pad_token='<pad>', mask_token='<mask>') 
 
-  special_tokens_dict = {'additional_special_tokens': ['#@상호명#', '#@위치#', '#@기관#', '#@고객이름#', '#@전화번호#']}
+  special_tokens_dict = {'additional_special_tokens': ['#@상호명#', '#@위치#', '#@기관#']}
   tokenizer.add_special_tokens(special_tokens_dict)
 
-  model_coll = BartModel.from_pretrained('gogamza/kobart-base-v2')
+  model_coll = GPT2Model.from_pretrained('skt/kogpt2-base-v2')
   model_coll.resize_token_embeddings(len(tokenizer))
 
   # 전처리 함수
   def preprocess_function(examples):
-    inputs = ["맛:" + i + " 양:" + j + " 배달:" + k + " 리뷰:" + l for i, j, k, l in zip(
-                  examples["맛"],examples["양"],examples["배달"],examples["고객리뷰"])]
-    model_inputs = tokenizer(inputs, max_length=256, truncation=True)
+    prefix = '사장답글:'
+    outputs = [prefix + doc for doc in examples["사장답글"]]
+    model_inputs = tokenizer(examples["고객리뷰"], outputs, max_length=512, truncation=True, padding=True, add_special_tokens=True)
 
-    with tokenizer.as_target_tokenizer():
-        labels = tokenizer(examples["사장답글"], max_length=128, truncation=True)
-
-    model_inputs["labels"] = labels["input_ids"]
+    model_inputs["labels"] = model_inputs["input_ids"]
     return model_inputs
   
   # 전처리 적용
@@ -60,7 +60,15 @@ def train(args):
 
   # load model
   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-  model = BartForConditionalGeneration.from_pretrained('gogamza/kobart-base-v2')
+  config = AutoConfig.from_pretrained('skt/kogpt2-base-v2', 
+                                    bos_token_id=tokenizer.bos_token_id,
+                                    eos_token_id=tokenizer.eos_token_id,
+                                    pad_token_id=tokenizer.pad_token_id,
+                                    sep_token_id=tokenizer.sep_token_id,
+                                    unk_token_id=tokenizer.unk_token_id,
+                                    output_hidden_states=False)
+  
+  model = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2', config=config)
   model.resize_token_embeddings(len(tokenizer))
   model.to(device)
 
@@ -78,8 +86,7 @@ def train(args):
     learning_rate=args.learning_rate,               # learning rate
     per_device_train_batch_size=args.per_device_train_batch_size,  # batch size per device during training
     per_device_eval_batch_size=args.per_device_eval_batch_size,   # batch size for evaluation
-    # warmup_steps=args.warmup_steps,                # number of warmup steps for learning rate scheduler
-    warmup_ratio=args.warmup_ratio,                # Ratio of total training steps used for a linear warmup from 0 to learning_rate.
+    warmup_steps=args.warmup_steps,                # number of warmup steps for learning rate scheduler
     weight_decay=args.weight_decay,                # strength of weight decay
     logging_dir=args.logging_dir,                  # directory for storing logs
     logging_steps=args.logging_steps,              # log saving step.
@@ -122,11 +129,11 @@ if __name__ == '__main__':
   parser.add_argument("--output_dir", type=str, default="./results", help="directory which stores various outputs (default: ./results)")
   parser.add_argument("--save_total_limit", type=int, default=5, help="max number of saved models (default: 5)")
   parser.add_argument("--save_steps", type=int, default=500, help="interval of saving model (default: 500)")
-  parser.add_argument("--num_train_epochs", type=int, default=3, help="number of train epochs (default: 20)")
+  parser.add_argument("--num_train_epochs", type=int, default=1, help="number of train epochs (default: 20)")
   parser.add_argument("--learning_rate", type=float, default=3e-5, help="learning rate (default: 5e-5)")
   parser.add_argument("--per_device_train_batch_size", type=int, default=32, help=" (default: 16)")
   parser.add_argument("--per_device_eval_batch_size", type=int, default=32, help=" (default: 16)")
-  parser.add_argument("--warmup_ratio", type=float, default=0.1, help=" (default: 0.1)")
+  parser.add_argument("--warmup_steps", type=int, default=500, help=" (default: 500)")
   parser.add_argument("--weight_decay", type=float, default=0.01, help=" (default: 0.01)")
   parser.add_argument("--logging_dir", type=str, default="./logs", help=" (default: ./logs)")
   parser.add_argument("--logging_steps", type=int, default=500, help=" (default: 100)")
@@ -134,10 +141,10 @@ if __name__ == '__main__':
   parser.add_argument("--eval_steps", type=int, default=500, help=" (default: 500)")
   parser.add_argument("--load_best_model_at_end", type=bool, default=True, help=" (default: True)")
   parser.add_argument("--save_pretrained", type=str, default="./best_model", help=" (default: ./best_model)")
-  parser.add_argument('--run_name', type=str, default="final_3epoch")
+  parser.add_argument('--run_name', type=str, default="huggingface_test")
   parser.add_argument("--n_splits", type=int, default=1, help=" (default: )")
   parser.add_argument("--test_size", type=float, default=0.1, help=" (default: )")
-  parser.add_argument("--project_name", type=str, default="[Final] KoBART", help=" (default: )")
+  parser.add_argument("--project_name", type=str, default="[Final] KoGPT2", help=" (default: )")
   parser.add_argument("--entity_name", type=str, default="growing_sesame", help=" (default: )")
   parser.add_argument("--report_to", type=str, default="wandb", help=" (default: )")
   parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help=" (default: )")
