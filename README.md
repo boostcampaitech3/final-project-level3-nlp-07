@@ -157,6 +157,14 @@
 
 ## 시연
 
+- 칭찬 리뷰 답글
+
+https://user-images.githubusercontent.com/31716984/175824165-f0cf3ffb-5eda-4f37-b10a-56d787ffe061.mp4
+
+- 불만 리뷰 답글
+
+https://user-images.githubusercontent.com/31716984/175824212-90805646-b6e9-429b-b52d-1a11270ec651.mp4
+
 
 
 ## 결과
