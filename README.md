@@ -20,12 +20,12 @@
 
 ![Untitled](./assets/Untitled.png)
 
-- 역할
-    - 김준재: KoBART finetuning, 리펙토링, KcELECTRA 텍스트 감정분석 모델 활용
-    - 김현아: 데이터 전/후처리, 텍스트 유사도 분석, 프로토타입 제작
-    - 배현진: 데이터 크롤링, 모델링(GPT2)
-    - 이강민: 크롤링 코드 작성, 데이터 EDA, 텍스트 유사도 분석(glove, SBERT)
-    - 최성원: 데이터 크롤링 수행, 데이터 EDA, 프로토타입 제작(streamlit)
+- 팀원 소개 및 역할
+
+|                                                  [김준재](https://github.com/junejae)                                                   |                                                                          [김현아](https://github.com/HyunAh-Kim-Clou)                                                                           |                                                 [배현진](https://github.com/hyunbool)                                                  |                                                                        [이강민](https://github.com/Lkangmin)                                                                         |                                                                         [최성원](https://github.com/matchiii)                                                                         |
+| :-------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------: |
+| [![Sesame](./assets/ernie.png)](https://github.com/junejae) | [![Sesame](./assets/bigbird.png)](https://github.com/HyunAh-Kim-Clou) | [![Sesame](./assets/bert.png)](https://github.com/hyunbool) | [![Avatar](./assets/kermit.png)](https://github.com/Lkangmin) | [![Avatar](./assets/elmo.png)](https://github.com/matchiii) |
+|KoBART finetuning, 리펙토링, KcELECTRA 텍스트 감정분석 모델 활용|데이터 전/후처리, 텍스트 유사도 분석, 프로토타입 제작|데이터 크롤링, 모델링(GPT2)|크롤링 코드 작성, 데이터 EDA, 텍스트 유사도 분석(glove, SBERT)|데이터 크롤링 수행, 데이터 EDA, 프로토타입 제작(streamlit)|
 
 # 3. 프로젝트 수행 절차 및 방법
 
@@ -156,6 +156,14 @@
 # 4. 프로젝트 수행 결과
 
 ## 시연
+
+- 칭찬 리뷰 답글
+
+https://user-images.githubusercontent.com/31716984/175824165-f0cf3ffb-5eda-4f37-b10a-56d787ffe061.mp4
+
+- 불만 리뷰 답글
+
+https://user-images.githubusercontent.com/31716984/175824212-90805646-b6e9-429b-b52d-1a11270ec651.mp4
 
 
 
